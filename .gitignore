@@ -1,0 +1,11 @@
+# Local environment files
+.env
+.env.local
+
+# Python virtual environment
+venv/
+__pycache__/
+*.pyc
+
+# OS files
+.DS_Store
