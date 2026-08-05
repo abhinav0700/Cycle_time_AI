@@ -369,6 +369,8 @@ with st.sidebar:
 
     # Load API Key from environment or .env securely
     api_key = load_api_key()
+    if not api_key:
+        api_key = st.text_input("API Key", type="password", help="Enter your developer API key to enable analysis.")
     model_name = "gemini-3.1-pro-preview"
 
 # 6. Base Prompt Configuration
@@ -701,22 +703,30 @@ with tab_dash:
             else:
                 st.warning("No video files (.mp4, .mov, .avi, .mkv) found in your Downloads folder.")
         else:
-            uploaded_video = st.file_uploader(
-                "Upload Manufacturing Operation Video", 
+            uploaded_videos = st.file_uploader(
+                "Upload Manufacturing Operation Videos (Max 5)", 
                 type=["mp4", "mov", "avi", "mkv"],
+                accept_multiple_files=True,
                 help="Videos containing manual workflows yield high accuracy results."
             )
+            
+            uploaded_video = None
+            if uploaded_videos:
+                if len(uploaded_videos) > 5:
+                    st.warning("Only the first 5 uploaded videos will be considered.")
+                    uploaded_videos = uploaded_videos[:5]
+                
+                video_names = [v.name for v in uploaded_videos]
+                selected_video_name = st.selectbox("Select uploaded video to analyze", video_names)
+                uploaded_video = next(v for v in uploaded_videos if v.name == selected_video_name)
             
     # Enable analyze button if a video source is available
     has_video_source = (input_type == "Choose from Downloads Folder" and video_path is not None) or (input_type == "Upload a Custom Video" and uploaded_video is not None)
     
     with ingest_col2:
         st.markdown("<div style='height: 48px;'></div>", unsafe_allow_html=True)
-        btn_col1, btn_col2 = st.columns(2)
-        with btn_col1:
-            analyze_clicked = st.button("🚀 Analyze Video", use_container_width=True, disabled=not api_key or not has_video_source)
-        with btn_col2:
-            demo_clicked = st.button("💡 Load Mock Demo", use_container_width=True)
+        analyze_clicked = st.button("🚀 Analyze Video", use_container_width=True, disabled=not api_key or not has_video_source)
+        demo_clicked = st.button("💡 Load Mock Demo", use_container_width=True)
 
     # Trigger mock demo load
     if demo_clicked:
