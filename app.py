@@ -261,6 +261,77 @@ button[data-baseweb="tab"][aria-selected="true"] {
 [data-testid="stHorizontalBlock"] {
     gap: 1.25rem !important;
 }
+
+/* Global text/heading color overrides for Streamlit elements to prevent contrast issues */
+.stMarkdown, .stMarkdown p, .stMarkdown li, .stMarkdown span,
+.stMarkdown h1, .stMarkdown h2, .stMarkdown h3, .stMarkdown h4, .stMarkdown h5, .stMarkdown h6,
+label, .stWidgetLabel, div[data-testid="stWidgetLabel"] p, div[data-testid="stWidgetLabel"] span,
+.stRadio label, .stRadio label p, .stRadio label span,
+.stSelectbox label, .stSelectbox label p,
+.stFileUploader label, .stFileUploader label p,
+.stTextInput label, .stTextInput label p,
+.stTextArea label, .stTextArea label p {
+    color: var(--text) !important;
+}
+
+/* Alert Styling overrides */
+div[data-testid="stAlert"] {
+    background-color: var(--bg-subtle) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius) !important;
+}
+div[data-testid="stAlert"] p, div[data-testid="stAlert"] div {
+    color: var(--text) !important;
+}
+
+/* Styled Data Table */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+}
+.data-table th {
+    text-align: left;
+    padding: 0.6rem 0.8rem;
+    background-color: var(--bg-subtle);
+    border-bottom: 2px solid var(--border);
+    color: var(--text-muted) !important;
+    font-weight: 600;
+}
+.data-table td {
+    padding: 0.6rem 0.8rem;
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text) !important;
+}
+.data-table tr:hover {
+    background-color: var(--card-hover);
+}
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+.badge-blue {
+    background-color: rgba(37, 99, 235, 0.1);
+    color: var(--accent);
+}
+
+/* Style all Streamlit bordered containers to match panel-card design */
+div[data-testid="stVerticalBlockBorderWrapper"] {
+    background-color: var(--card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius) !important;
+    padding: 1.4rem !important;
+    box-shadow: var(--shadow) !important;
+    margin-bottom: 1.25rem !important;
+}
+div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stVerticalBlock"] {
+    gap: 0.5rem !important;
+}
 """
 
 st.markdown(f"<style>{css_vars}\n{style_css}</style>", unsafe_allow_html=True)
@@ -296,18 +367,9 @@ with st.sidebar:
     """, unsafe_allow_html=True)
     st.markdown("<hr style='margin: 0.5rem 0 1.5rem 0; border-color: var(--border);'>", unsafe_allow_html=True)
 
-    st.markdown("### Configuration")
-    
     # Load API Key from environment or .env securely
     api_key = load_api_key()
-    
-    # Model Selection
-    model_name = st.selectbox(
-        "AI Vision Model",
-        options=["gemini-3.1-pro-preview", "gemini-3.1-pro", "gemini-2.5-pro", "gemini-2.5-flash", "gemini-1.5-pro"],
-        index=0,
-        help="gemini-3.1-pro-preview is the current active API name for Gemini 3.1 Pro."
-    )
+    model_name = "gemini-3.1-pro-preview"
 
 # 6. Base Prompt Configuration
 BASE_PROMPT = """You are an Industrial Engineer, Lean Manufacturing Consultant, Six Sigma Black Belt, and AI Manufacturing Analyst.
@@ -604,10 +666,9 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Main Navigation Tabs
-tab_dash, tab_report, tab_debugger = st.tabs([
+tab_dash, tab_report = st.tabs([
     "📊 Interactive Dashboard", 
-    "📄 Detailed AI Report", 
-    "⚙️ API & Prompt Config"
+    "📄 Detailed AI Report"
 ])
 
 # Initialize session state for storing study results
@@ -616,16 +677,7 @@ if "study_output" not in st.session_state:
 if "is_demo" not in st.session_state:
     st.session_state.is_demo = False
 
-# TAB 3: Prompt Config & Debugger (we show it first in code flow so inputs exist, but tabs decide layout)
-with tab_debugger:
-    st.markdown("""
-    <div class="panel-card">
-        <div class="panel-title">🧠 Prompt Engineering & API Customization</div>
-        <div class="panel-subtitle">Tailor the base analysis rules sent to Gemini Vision.</div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    custom_prompt = st.text_area("Base Analysis System Prompt", value=BASE_PROMPT, height=400)
+custom_prompt = BASE_PROMPT
 
 # TAB 1: Main Interactive Dashboard
 with tab_dash:
@@ -694,7 +746,7 @@ with tab_dash:
             status_container = st.empty()
             
             with status_container.container():
-                st.info("Uploading video to Google Gemini File API (this may take a few moments)...")
+                st.info("Uploading video to File API (this may take a few moments)...")
                 
             # Upload video to File API via direct HTTP
             file_meta = upload_file_to_gemini(temp_path, "video/mp4", api_key)
@@ -706,12 +758,12 @@ with tab_dash:
             status = get_file_status(file_name, api_key)
             while status.get("state") == "PROCESSING":
                 with status_container.container():
-                    st.info(f"Gemini is processing the video frames... (elapsed: {int(time.time() - start_poll)}s)")
+                    st.info(f"AI is processing the video frames... (elapsed: {int(time.time() - start_poll)}s)")
                 time.sleep(3)
                 status = get_file_status(file_name, api_key)
                 
             if status.get("state") == "FAILED":
-                raise Exception("Gemini video ingestion processing failed.")
+                raise Exception("Video ingestion processing failed.")
                 
             # Query the model
             with status_container.container():
@@ -730,7 +782,7 @@ with tab_dash:
             status_container.empty()
             st.success("Analysis complete! View the results below.")
             
-            # Cleanup temp file and Gemini file
+            # Cleanup temp file and remote file
             try:
                 if is_temp_file and temp_path:
                     os.unlink(temp_path)
@@ -785,146 +837,138 @@ with tab_dash:
         
         with dash_col1:
             # Video Player Panel
-            st.markdown("""
-            <div class="panel-card" style="padding-bottom: 10px;">
+            with st.container(border=True):
+                st.markdown("""
                 <div class="panel-title">🎥 Manufacturing Operation Stream</div>
                 <div class="panel-subtitle">Review the raw production process video.</div>
-            """, unsafe_allow_html=True)
-            
-            if st.session_state.is_demo:
-                st.info("Running in Mock Demo Mode. Video playback is disabled. Upload a custom video to view streaming clips.")
-            elif input_type == "Choose from Downloads Folder" and video_path:
-                st.video(video_path)
-            elif input_type == "Upload a Custom Video" and uploaded_video:
-                st.video(uploaded_video)
-            else:
-                st.warning("No video source selected.")
-            st.markdown("</div>", unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
+                
+                if st.session_state.is_demo:
+                    st.info("Running in Mock Demo Mode. Video playback is disabled. Upload a custom video to view streaming clips.")
+                elif input_type == "Choose from Downloads Folder" and video_path:
+                    st.video(video_path)
+                elif input_type == "Upload a Custom Video" and uploaded_video:
+                    st.video(uploaded_video)
+                else:
+                    st.warning("No video source selected.")
             
             # Interactive Timeline Chart
-            st.markdown("""
-            <div class="panel-card">
+            with st.container(border=True):
+                st.markdown("""
                 <div class="panel-title">📊 Activity Timeline Gantt Chart</div>
                 <div class="panel-subtitle">Horizontal timeline of manual assembly operations.</div>
-            """, unsafe_allow_html=True)
-            
-            if df_timeline is not None and not df_timeline.empty:
-                # Construct Gantt Plotly chart
-                fig = go.Figure()
+                """, unsafe_allow_html=True)
                 
-                # Plotly Gantt implementation using horizontal bars
-                # Custom colors for activities to make it visually pleasing
-                colors = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4']
-                
-                for idx, row in df_timeline.iterrows():
-                    color = colors[idx % len(colors)]
-                    fig.add_trace(go.Bar(
-                        name=row['Activity_Label'],
-                        x=[row['Duration_Sec']],
-                        y=[row['Activity_Label']],
-                        orientation='h',
-                        base=[row['Start_Sec']],
-                        marker=dict(color=color, line=dict(color='rgba(0,0,0,0)', width=0)),
-                        hovertemplate=f"<b>{row['Activity_Label']}</b><br>" + 
-                                      f"Start: {row.get('Start', 'N/A')}<br>" +
-                                      f"End: {row.get('End', 'N/A')}<br>" + 
-                                      f"Duration: {row.get('Duration', 'N/A')}<br>" + 
-                                      f"Confidence: {row.get('Confidence Score', 'N/A')}<extra></extra>",
-                        showlegend=False
-                    ))
-                
-                fig.update_layout(
-                    barmode='stack',
-                    xaxis_title="Time (Seconds)",
-                    yaxis=dict(
-                        autorange="reversed",
-                        tickfont=dict(size=11, color="#71717a" if not IS_DARK else "#a1a1aa"),
-                    ),
-                    xaxis=dict(
-                        gridcolor="rgba(0,0,0,0.05)" if not IS_DARK else "rgba(255,255,255,0.05)",
-                        zerolinecolor="rgba(0,0,0,0.05)" if not IS_DARK else "rgba(255,255,255,0.05)",
-                        tickfont=dict(size=10, color="#71717a" if not IS_DARK else "#a1a1aa"),
-                    ),
-                    **PLOT_LAYOUT
-                )
-                st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
-                
-                # Render the tabular timeline beneath the chart
-                st.markdown("<p style='font-size:0.75rem; color:var(--text-muted); font-weight:600; margin-top:10px;'>DETAILED WORK ELEMENT SHEET:</p>", unsafe_allow_html=True)
-                
-                # Format to a styled HTML Table
-                table_rows = ""
-                for _, r in df_timeline.iterrows():
-                    act = r.get('Activity', r.get('Activity_Label'))
-                    start = r.get('Start')
-                    end = r.get('End')
-                    dur = r.get('Duration')
-                    conf = r.get('Confidence Score', 'N/A')
-                    table_rows += f"<tr><td><strong>{act}</strong></td><td><code style='font-family:JetBrains Mono;'>{start}</code></td><td><code style='font-family:JetBrains Mono;'>{end}</code></td><td>{dur}</td><td><span class='badge badge-blue'>{conf}</span></td></tr>"
-                
-                st.html(f'<table class="data-table"><thead><tr><th>Activity</th><th>Start</th><th>End</th><th>Duration</th><th>Confidence</th></tr></thead><tbody>{table_rows}</tbody></table>')
-            else:
-                st.warning("Failed to parse activity timeline table. Review raw report in 'Detailed AI Report' tab.")
-                
-            st.markdown("</div>", unsafe_allow_html=True)
+                if df_timeline is not None and not df_timeline.empty:
+                    # Construct Gantt Plotly chart
+                    fig = go.Figure()
+                    
+                    # Plotly Gantt implementation using horizontal bars
+                    colors = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4']
+                    
+                    for idx, row in df_timeline.iterrows():
+                        color = colors[idx % len(colors)]
+                        fig.add_trace(go.Bar(
+                            name=row['Activity_Label'],
+                            x=[row['Duration_Sec']],
+                            y=[row['Activity_Label']],
+                            orientation='h',
+                            base=[row['Start_Sec']],
+                            marker=dict(color=color, line=dict(color='rgba(0,0,0,0)', width=0)),
+                            hovertemplate=f"<b>{row['Activity_Label']}</b><br>" + 
+                                          f"Start: {row.get('Start', 'N/A')}<br>" +
+                                          f"End: {row.get('End', 'N/A')}<br>" + 
+                                          f"Duration: {row.get('Duration', 'N/A')}<br>" + 
+                                          f"Confidence: {row.get('Confidence Score', 'N/A')}<extra></extra>",
+                            showlegend=False
+                        ))
+                    
+                    fig.update_layout(
+                        barmode='stack',
+                        xaxis_title="Time (Seconds)",
+                        yaxis=dict(
+                            autorange="reversed",
+                            tickfont=dict(size=11, color="#71717a" if not IS_DARK else "#a1a1aa"),
+                        ),
+                        xaxis=dict(
+                            gridcolor="rgba(0,0,0,0.05)" if not IS_DARK else "rgba(255,255,255,0.05)",
+                            zerolinecolor="rgba(0,0,0,0.05)" if not IS_DARK else "rgba(255,255,255,0.05)",
+                            tickfont=dict(size=10, color="#71717a" if not IS_DARK else "#a1a1aa"),
+                        ),
+                        **PLOT_LAYOUT
+                    )
+                    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+                    
+                    # Render the tabular timeline beneath the chart
+                    st.markdown("<p style='font-size:0.75rem; color:var(--text-muted); font-weight:600; margin-top:10px;'>DETAILED WORK ELEMENT SHEET:</p>", unsafe_allow_html=True)
+                    
+                    # Format to a styled HTML Table
+                    table_rows = ""
+                    for _, r in df_timeline.iterrows():
+                        act = r.get('Activity', r.get('Activity_Label'))
+                        start = r.get('Start')
+                        end = r.get('End')
+                        dur = r.get('Duration')
+                        conf = r.get('Confidence Score', 'N/A')
+                        table_rows += f"<tr><td><strong>{act}</strong></td><td><code style='font-family:JetBrains Mono;'>{start}</code></td><td><code style='font-family:JetBrains Mono;'>{end}</code></td><td>{dur}</td><td><span class='badge badge-blue'>{conf}</span></td></tr>"
+                    
+                    st.html(f'<div style="overflow-x: auto; width: 100%;"><table class="data-table"><thead><tr><th>Activity</th><th>Start</th><th>End</th><th>Duration</th><th>Confidence</th></tr></thead><tbody>{table_rows}</tbody></table></div>')
+                else:
+                    st.warning("Failed to parse activity timeline table. Review raw report in 'Detailed AI Report' tab.")
 
         with dash_col2:
             # Waste Analysis & Bottlenecks
-            st.markdown("""
-            <div class="panel-card">
+            with st.container(border=True):
+                st.markdown("""
                 <div class="panel-title">⚠️ Waste Identification & Bottlenecks</div>
                 <div class="panel-subtitle">Industrial engineering assessment of manual workflow inefficiencies.</div>
-            """, unsafe_allow_html=True)
-            
-            # Parsing Bottlenecks Section
-            bottlenecks_sec = "Not found."
-            pattern_bt = r"# Bottlenecks(.*?)(?:# AI Recommendations|# Productivity Score|$)"
-            match_bt = re.search(pattern_bt, raw_text, re.DOTALL | re.IGNORECASE)
-            if match_bt:
-                bottlenecks_sec = match_bt.group(1).strip()
-            st.markdown(bottlenecks_sec)
-            st.markdown("</div>", unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
+                
+                # Parsing Bottlenecks Section
+                bottlenecks_sec = "Not found."
+                pattern_bt = r"# Bottlenecks(.*?)(?:# AI Recommendations|# Productivity Score|$)"
+                match_bt = re.search(pattern_bt, raw_text, re.DOTALL | re.IGNORECASE)
+                if match_bt:
+                    bottlenecks_sec = match_bt.group(1).strip()
+                st.markdown(bottlenecks_sec)
 
             # AI Recommendations
-            st.markdown("""
-            <div class="panel-card">
+            with st.container(border=True):
+                st.markdown("""
                 <div class="panel-title">💡 Kaizen (AI Recommendations)</div>
                 <div class="panel-subtitle">Actionable improvements to reduce cycle time and eliminate waste.</div>
-            """, unsafe_allow_html=True)
-            
-            # Parsing Recommendations Section
-            recs_sec = "Not found."
-            pattern_recs = r"# AI Recommendations(.*?)(?:# Productivity Score|# Estimated Time Savings|$)"
-            match_recs = re.search(pattern_recs, raw_text, re.DOTALL | re.IGNORECASE)
-            if match_recs:
-                recs_sec = match_recs.group(1).strip()
-            st.markdown(recs_sec)
-            st.markdown("</div>", unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
+                
+                # Parsing Recommendations Section
+                recs_sec = "Not found."
+                pattern_recs = r"# AI Recommendations(.*?)(?:# Productivity Score|# Estimated Time Savings|$)"
+                match_recs = re.search(pattern_recs, raw_text, re.DOTALL | re.IGNORECASE)
+                if match_recs:
+                    recs_sec = match_recs.group(1).strip()
+                st.markdown(recs_sec)
             
             # Confidence Summary
-            st.markdown("""
-            <div class="panel-card" style="padding-bottom: 20px;">
+            with st.container(border=True):
+                st.markdown("""
                 <div class="panel-title">🎯 Time Study Confidence Profile</div>
                 <div class="panel-subtitle">Algorithm metrics and calculated savings metadata.</div>
-            """, unsafe_allow_html=True)
-            
-            sub_col1, sub_col2 = st.columns(2)
-            with sub_col1:
-                st.markdown(f"**Estimated Time Savings:** `{metrics['Time Savings']}`")
-            with sub_col2:
-                st.markdown(f"**Model Confidence Level:** `{metrics['Confidence Level']}`")
-            st.markdown("</div>", unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
+                
+                sub_col1, sub_col2 = st.columns(2)
+                with sub_col1:
+                    st.markdown(f"**Estimated Time Savings:** `{metrics['Time Savings']}`")
+                with sub_col2:
+                    st.markdown(f"**Model Confidence Level:** `{metrics['Confidence Level']}`")
 
 # TAB 2: Detailed Text Report
 with tab_report:
-    st.markdown("""
-    <div class="panel-card">
+    with st.container(border=True):
+        st.markdown("""
         <div class="panel-title">📄 Raw Industrial Engineering Time Study Report</div>
-        <div class="panel-subtitle">The full markdown document compiled by Gemini.</div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    if st.session_state.study_output:
-        st.markdown(st.session_state.study_output)
-    else:
-        st.info("No report generated yet. Upload a video or load the mock demo in the dashboard tab.")
+        <div class="panel-subtitle">The full markdown document compiled by the AI.</div>
+        """, unsafe_allow_html=True)
+        
+        if st.session_state.study_output:
+            st.markdown(st.session_state.study_output)
+        else:
+            st.info("No report generated yet. Upload a video or load the mock demo in the dashboard tab.")
